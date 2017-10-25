@@ -1,6 +1,7 @@
 
 from boto3.s3.transfer import TransferConfig
 from multiprocessing.pool import ThreadPool
+from boto3.s3.transfer import TransferConfig
 from multiprocessing import Process
 from pprint import pprint as pp
 import xml.etree.ElementTree as ET
@@ -32,10 +33,10 @@ def create_dir(abs_path):
 
 
 def get_obj(obj):
-    create_dir(obj) 
+    create_dir(obj)
     s3 = boto3.resource('s3')
-                        # endpoint_url='https://sos.exo.io',
-                        # config=boto3.session.Config(signature_version='s3'))
+    # endpoint_url='https://sos.exo.io',
+    # config=boto3.session.Config(signature_version='s3'))
     try:
         rep = s3.Bucket(BUCKET_NAME).download_file(obj, obj, Config=config)
     except OSError:
@@ -75,7 +76,7 @@ def locate_bands(product, meta, s3, bucket):
 
     bands = {}
     for child in root[0][0][-1][0][0]:
-        band = product + '/' + child.text 
+        band = product + '/' + child.text
         bands[band.split('_')[-1]] = band + img_format
     # obj.download_fileobj(data)
     # print obj.get()["Body"].read().decode('utf-8')
@@ -89,10 +90,11 @@ def get_product_metadata(keys):
     bucket = s3.Bucket(BUCKET_NAME)
     pool = ThreadPool(processes=len(keys))
     pool.map(lambda x: get_obj(x, bucket), keys)
-    
+
 
 def get_product_data(dict, targets=None):
     pp(dict)
+
     def cb(band):
         print band
         q.put(band[0].split('_')[-1].split('.')[0])
@@ -130,7 +132,7 @@ def main(bucket_id, product, meta, target_bands=None):
     product_file_list = get_product_keys(bucket, product)
     bands_index = locate_bands(product, meta, s3, bucket_id)
     metadata_loc = locate_metadata(product_file_list, bands_index.values())
-    #get_product_metadata(metadata_loc)
+    # get_product_metadata(metadata_loc)
     get_product_data(bands_index, target_bands)
     print q.queue
 
