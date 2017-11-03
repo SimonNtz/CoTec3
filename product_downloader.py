@@ -1,8 +1,9 @@
 
 from boto3.s3.transfer import TransferConfig
-from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import Pool
 from boto3.s3.transfer import TransferConfig
 from multiprocessing import Process
+import multiprocessing
 from pprint import pprint as pp
 import xml.etree.ElementTree as ET
 import botocore
@@ -33,7 +34,7 @@ def create_dir(abs_path):
 
 
 def get_obj(obj):
-    create_dir(obj)
+    # create_dir(obj)
     s3 = boto3.resource('s3')
     # endpoint_url='https://sos.exo.io',
     # config=boto3.session.Config(signature_version='s3'))
@@ -52,7 +53,9 @@ def filter_data_order(inv_data_key, key):
     return foo
 
 
-def get_product_keys(bucket, f):
+def get_product_keys(bucket_id, f):
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_id)
     objects = list(bucket.objects.filter(Prefix=f + '/'))
     return map(lambda x: x.Object().key, list(objects))
 
@@ -62,8 +65,9 @@ def _extract_img_format(root):
     return formats_file_extension[temp]
 
 
-def locate_bands(product, meta, s3, bucket):
+def locate_bands(product, meta):
     metadata_file = "%s/%s" % (product, meta)
+    s3 = boto3.resource('s3')
     obj = s3.Object(BUCKET_NAME, metadata_file)
     data = io.BytesIO()
     obj.download_fileobj(data)
@@ -80,16 +84,30 @@ def locate_bands(product, meta, s3, bucket):
         bands[band.split('_')[-1]] = band + img_format
     # obj.download_fileobj(data)
     # print obj.get()["Body"].read().decode('utf-8')
-    #tree = ET.fromstring(data.getvalue().decode("utf-8"))
+    # tree = ET.fromstring(data.getvalue().decode("utf-8"))
     # data.read()
     return bands
 
 
+def test_imap(key):
+    return key.split('/')[0]
+    # create_dir(key)
+    # print "CHECK"
+    # s3 = boto3.resource('s3')
+    # print list(s3.buckets.all())[0]
+
+
+# def get_data_imap(dict):
+#     data_keys = dict.values()
+#     #map(create_dir, data_keys)
+#     pool = Pool(processes=len(data_keys))
+#     [] = .imap(test_imap, data_keys)
+
+
 def get_product_metadata(keys):
     pp(keys)
-    bucket = s3.Bucket(BUCKET_NAME)
-    pool = ThreadPool(processes=len(keys))
-    pool.map(lambda x: get_obj(x, bucket), keys)
+    pool = Pool(processes=len(keys))
+    pool.map(get_obj, keys)
 
 
 def get_product_data(dict, targets=None):
@@ -104,19 +122,12 @@ def get_product_data(dict, targets=None):
         bands = [dict[i] for i in targets]
     else:
         bands = dict.values()
-    pp(bands)
-    pool = ThreadPool(processes=len(bands))
-    r = pool.map_async(get_obj, bands, callback=cb)
-    r.wait()
-
-
-def run_async_get(f):
-    s3 = boto3.resource('s3',
-                        aws_access_key_id=access_key,
-                        aws_secret_access_key=secret_key,
-                        # endpoint_url='https://sos.exo.io',
-                        config=boto3.session.Config(signature_version='s3'))
-    bucket = s3.Bucket(BUCKET_NAME)
+    pool = Pool(processes=len(bands))
+    res = [pool.apply_async(get_obj,
+                            rgs=(band, ),
+                            callback=cb) for band in bands]
+    for r in res:
+        r.wait()
 
 
 def locate_metadata(files, bands):
@@ -125,16 +136,16 @@ def locate_metadata(files, bands):
 
 
 def main(bucket_id, product, meta, target_bands=None):
-    s3 = boto3.resource('s3')
-    # endpoint_url='https://sos.exo.io',
-    # config=boto3.session.Config(signature_version='s3'))
-    bucket = s3.Bucket(bucket_id)
-    product_file_list = get_product_keys(bucket, product)
-    bands_index = locate_bands(product, meta, s3, bucket_id)
+    global BUCKET_NAME
+    global q
+    BUCKET_NAME = bucket_id
+    product_file_list = get_product_keys(bucket_id, product)
+    bands_index = locate_bands(product, meta)
+    # get_data_imap(bands_index)
     metadata_loc = locate_metadata(product_file_list, bands_index.values())
-    # get_product_metadata(metadata_loc)
-    get_product_data(bands_index, target_bands)
-    print q.queue
+    get_product_metadata(metadata_loc)
+    # get_product_data(bands_index, target_bands)
+    # print list(q.queue)
 
 
 if __name__ == '__main__':
@@ -145,7 +156,7 @@ if __name__ == '__main__':
     main(BUCKET_NAME, p, meta_file, ['B01', 'B02', 'B03'])
 # run_proc(filenames[0])
 # run_async_get(filenames[0])
-#process = [None] * 2
+# process = [None] * 2
 # for i in range(2):
 #    #process[i] = Process(target=run_async_get, args=(filenames[i], ))
 #    process[i] = Process(target=run_proc, args=(filenames[i], ))
@@ -153,8 +164,8 @@ if __name__ == '__main__':
 # for j in range(2):
 #    process[j].join()
 ##
-#time_0 = time.time()
-#pool = ThreadPool(processes=2)
-#pool.map(run_proc, filenames)
-#print(time.time() - time_0)
-#print(time.time() - time_0)
+# time_0 = time.time()
+# pool = Pool(processes=2)
+# pool.map(run_proc, filenames)
+# print(time.time() - time_0)
+# print(time.time() - time_0)

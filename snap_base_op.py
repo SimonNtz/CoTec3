@@ -16,7 +16,6 @@ from snappy import Rectangle
 from multiprocessing.pool import ThreadPool
 from multiprocessing import Process
 import functools
-import boto3final as boto
 
 
 def read_product(f, meta=''):
