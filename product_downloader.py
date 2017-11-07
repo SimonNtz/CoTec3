@@ -1,6 +1,7 @@
 
 from boto3.s3.transfer import TransferConfig
-from multiprocessing.pool import Pool
+from functools import partial
+from multiprocessing.pool import ThreadPool
 from boto3.s3.transfer import TransferConfig
 from multiprocessing import Process
 import multiprocessing
@@ -33,18 +34,16 @@ def create_dir(abs_path):
             raise
 
 
-def get_obj(obj):
-    # create_dir(obj)
+def get_obj(obj, bucket_id):
     s3 = boto3.resource('s3')
-    # endpoint_url='https://sos.exo.io',
-    # config=boto3.session.Config(signature_version='s3'))
+    print("!!!" + obj)
     try:
-        rep = s3.Bucket(BUCKET_NAME).download_file(obj, obj, Config=config)
+        rep = s3.Bucket(bucket_id).download_file(obj, obj, Config=config)
     except OSError:
         print("Failled to download "
               + key
               + " from "
-              + BUCKET_NAME)
+              + bucket_id)
     return obj
 
 
@@ -65,10 +64,10 @@ def _extract_img_format(root):
     return formats_file_extension[temp]
 
 
-def locate_bands(product, meta):
+def locate_bands(product, meta, bucket_id):
     metadata_file = "%s/%s" % (product, meta)
     s3 = boto3.resource('s3')
-    obj = s3.Object(BUCKET_NAME, metadata_file)
+    obj = s3.Object(bucket_id, metadata_file)
     data = io.BytesIO()
     obj.download_fileobj(data)
     data.seek(0)
@@ -89,42 +88,28 @@ def locate_bands(product, meta):
     return bands
 
 
-def test_imap(key):
-    return key.split('/')[0]
-    # create_dir(key)
-    # print "CHECK"
-    # s3 = boto3.resource('s3')
-    # print list(s3.buckets.all())[0]
-
-
-# def get_data_imap(dict):
-#     data_keys = dict.values()
-#     #map(create_dir, data_keys)
-#     pool = Pool(processes=len(data_keys))
-#     [] = .imap(test_imap, data_keys)
-
-
-def get_product_metadata(keys):
+def get_product_metadata(keys, bucket_id):
     pp(keys)
-    pool = Pool(processes=len(keys))
-    pool.map(get_obj, keys)
+    pool = ThreadPool(processes=len(keys))
+    # pool.map(get_obj, keys)
+    _get_obj = partial(get_obj, bucket_id=bucket_id)
+    pool.map(_get_obj, keys)
+    # pool.map(lambda x: get_obj(x, bucket_id), keys)
 
 
-def get_product_data(dict, targets=None):
-    pp(dict)
+def get_product_data(bands_dict, targets=None):
 
     def cb(band):
-        print band
-        q.put(band[0].split('_')[-1].split('.')[0])
-        return 'ok'
+        print "%s downloaded." % band
+        return "ok"
 
     if targets:
-        bands = [dict[i] for i in targets]
+        bands = [bands_dict[i] for i in targets]
     else:
-        bands = dict.values()
-    pool = Pool(processes=len(bands))
+        bands = bands_dict.values()
+    pool = ThreadPool(processes=len(bands))
     res = [pool.apply_async(get_obj,
-                            rgs=(band, ),
+                            args=(band, ),
                             callback=cb) for band in bands]
     for r in res:
         r.wait()
@@ -135,15 +120,25 @@ def locate_metadata(files, bands):
         x.split('.')[:-1]) not in bands, files))
 
 
-def main(bucket_id, product, meta, target_bands=None):
-    global BUCKET_NAME
-    global q
-    BUCKET_NAME = bucket_id
+def init(bucket_id, product, meta):
     product_file_list = get_product_keys(bucket_id, product)
-    bands_index = locate_bands(product, meta)
-    # get_data_imap(bands_index)
-    metadata_loc = locate_metadata(product_file_list, bands_index.values())
-    get_product_metadata(metadata_loc)
+    bands_index = locate_bands(product, meta, bucket_id)
+    metadata_loc = locate_metadata(
+        product_file_list, bands_index.values())
+    get_product_metadata(metadata_loc, bucket_id)
+
+
+def main(bucket_id, product, meta, target_bands=None):
+    # global BUCKET_NAME
+    init(bucket_id, product, meta)
+    # global BUCKET_NAME
+    # global q
+    # BUCKET_NAME = bucket_id
+    # product_file_list = get_product_keys(bucket_id, product)
+    # bands_index = locate_bands(product, meta)
+    # # get_data_imap(bands_index)
+    # metadata_loc = locate_metadata(product_file_list, bands_index.values())
+    # get_product_metadata(metadata_loc)
     # get_product_data(bands_index, target_bands)
     # print list(q.queue)
 
