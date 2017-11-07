@@ -35,6 +35,7 @@ def create_dir(abs_path):
 
 
 def get_obj(obj, bucket_id):
+    create_dir(obj)
     s3 = boto3.resource('s3')
     print("!!!" + obj)
     try:
