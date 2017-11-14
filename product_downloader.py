@@ -14,6 +14,7 @@ import threading
 import errno
 import time
 import Queue as Q
+import Shared
 import sys
 import io
 import os
@@ -37,14 +38,14 @@ def create_dir(abs_path):
 def get_obj(obj, bucket_id):
     create_dir(obj)
     s3 = boto3.resource('s3')
-    print("!!!" + obj)
     try:
         rep = s3.Bucket(bucket_id).download_file(obj, obj, Config=config)
     except OSError:
         print("Failled to download "
               + key
               + " from "
-              + bucket_id)
+              + bucket_id) 
+    print "%s downloaded" % obj  
     return obj
 
 
@@ -90,7 +91,6 @@ def locate_bands(product, meta, bucket_id):
 
 
 def get_product_metadata(keys, bucket_id):
-    pp(keys)
     pool = ThreadPool(processes=len(keys))
     # pool.map(get_obj, keys)
     _get_obj = partial(get_obj, bucket_id=bucket_id)
@@ -98,27 +98,37 @@ def get_product_metadata(keys, bucket_id):
     # pool.map(lambda x: get_obj(x, bucket_id), keys)
 
 
-def get_product_data(bands_dict, targets=None):
+def get_product_data(bands_dict, bucket_id, targets=None):
+    def value2key(value):
+	return bands_dict.keys()[bands_dict.values().index(value)]
 
     def cb(band):
-        print "%s downloaded." % band
+	print "AHAHAHAH"
+	band_key = value2key(band)
+        print "%s downloaded." % band_key
+        Shared.shared.data_dict[band_key] = True
         return "ok"
-
+    
     if targets:
         bands = [bands_dict[i] for i in targets]
     else:
         bands = bands_dict.values()
+   
     pool = ThreadPool(processes=len(bands))
+    print "Download of %s is starting" % str(bands)
     res = [pool.apply_async(get_obj,
-                            args=(band, ),
+                            args=(band, bucket_id),
                             callback=cb) for band in bands]
+    Shared.shared.data_dict['B03']  = True	
+    print Shared.shared.data_dict.values()
     for r in res:
-        r.wait()
+        r.get() 
+#    for r in res:
+#        r.wait()
 
 
 def locate_metadata(files, bands):
-    return list(filter(lambda x: '.'.join(
-        x.split('.')[:-1]) not in bands, files))
+    return [f for f in files if f not in bands]
 
 
 def init(bucket_id, product, meta):
@@ -127,11 +137,13 @@ def init(bucket_id, product, meta):
     metadata_loc = locate_metadata(
         product_file_list, bands_index.values())
     get_product_metadata(metadata_loc, bucket_id)
-
+    return bands_index
 
 def main(bucket_id, product, meta, target_bands=None):
     # global BUCKET_NAME
-    init(bucket_id, product, meta)
+    bands_index = init(bucket_id, product, meta)
+    bands = ["B02", "B03", "B06"]#, ["B04", "B05", "B08"]]
+    get_product_data(bands_index, bucket_id, bands)
     # global BUCKET_NAME
     # global q
     # BUCKET_NAME = bucket_id
