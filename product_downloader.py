@@ -7,6 +7,7 @@ from multiprocessing import Process
 import multiprocessing
 from pprint import pprint as pp
 import xml.etree.ElementTree as ET
+import product_meta as pm
 import botocore
 import boto3
 import Queue as Q
@@ -24,6 +25,7 @@ config = TransferConfig(multipart_threshold=0.03 * GB,
                         max_concurrency=20,
                         use_threads=True)  # max_concurency
 formats_file_extension = {'JPEG2000': '.jp2'}
+meta_lock = False
 
 
 def create_dir(abs_path):
@@ -44,8 +46,7 @@ def get_obj(obj, bucket_id):
         print("Failled to download "
               + key
               + " from "
-              + bucket_id) 
-    print "%s downloaded" % obj  
+              + bucket_id)
     return obj
 
 
@@ -67,7 +68,8 @@ def _extract_img_format(root):
 
 
 def locate_bands(product, meta, bucket_id):
-    metadata_file = "%s/%s" % (product, meta)
+    #metadata_file = "%s/%s" % (product, meta)
+    metadata_file = meta
     s3 = boto3.resource('s3')
     obj = s3.Object(bucket_id, metadata_file)
     data = io.BytesIO()
@@ -95,34 +97,32 @@ def get_product_metadata(keys, bucket_id):
     # pool.map(get_obj, keys)
     _get_obj = partial(get_obj, bucket_id=bucket_id)
     pool.map(_get_obj, keys)
+    Shared.shared.write('meta', True)
+    print "Metadata ready."
     # pool.map(lambda x: get_obj(x, bucket_id), keys)
 
 
 def get_product_data(bands_dict, bucket_id, targets=None):
     def value2key(value):
-	return bands_dict.keys()[bands_dict.values().index(value)]
+        return bands_dict.keys()[bands_dict.values().index(value)]
 
     def cb(band):
-	print "AHAHAHAH"
-	band_key = value2key(band)
-        print "%s downloaded." % band_key
-        Shared.shared.data_dict[band_key] = True
-        return "ok"
-    
+        band_key = value2key(band)
+        print("%s downloaded." % band_key)
+        Shared.shared.write(band_key, True)
+
     if targets:
         bands = [bands_dict[i] for i in targets]
     else:
         bands = bands_dict.values()
-   
+
     pool = ThreadPool(processes=len(bands))
     print "Download of %s is starting" % str(bands)
     res = [pool.apply_async(get_obj,
                             args=(band, bucket_id),
                             callback=cb) for band in bands]
-    Shared.shared.data_dict['B03']  = True	
-    print Shared.shared.data_dict.values()
-    for r in res:
-        r.get() 
+    pool.close()
+    pool.join()
 #    for r in res:
 #        r.wait()
 
@@ -131,18 +131,22 @@ def locate_metadata(files, bands):
     return [f for f in files if f not in bands]
 
 
-def init(bucket_id, product, meta):
+def init(bucket_id, product):
     product_file_list = get_product_keys(bucket_id, product)
-    bands_index = locate_bands(product, meta, bucket_id)
+    bands_index = locate_bands(
+        product, pm.get_meta_from_prod(product), bucket_id)
     metadata_loc = locate_metadata(
         product_file_list, bands_index.values())
+    return bands_index, metadata_loc
+
     get_product_metadata(metadata_loc, bucket_id)
     return bands_index
+
 
 def main(bucket_id, product, meta, target_bands=None):
     # global BUCKET_NAME
     bands_index = init(bucket_id, product, meta)
-    bands = ["B02", "B03", "B06"]#, ["B04", "B05", "B08"]]
+    bands = ["B02", "B03", "B06"]  # , ["B04", "B05", "B08"]]
     get_product_data(bands_index, bucket_id, bands)
     # global BUCKET_NAME
     # global q

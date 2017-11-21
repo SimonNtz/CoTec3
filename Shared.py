@@ -1,15 +1,15 @@
 from multiprocessing import Manager
 
+
 class Shared:
 
     def __init__(self):
-        print("Init shared dict")
-        self.data_dict = Manager().dict()
-	self.data_dict['Init'] = False
+        self.dict = Manager().dict()
+        self.dict['Init'] = True
+        self.dict['meta'] = False
 
-    def write(self, msg):
-        self.data_dict[msg] = True
-        print("write %s on data")
-        print self.data_dict.keys()
+    def write(self, index, msg):
+        self.dict[index] = msg
+
 
 shared = Shared()
