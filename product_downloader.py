@@ -70,6 +70,7 @@ def _extract_img_format(root):
 def locate_bands(product, meta, bucket_id):
     #metadata_file = "%s/%s" % (product, meta)
     metadata_file = meta
+    print "metadatfile is " + metadata_file
     s3 = boto3.resource('s3')
     obj = s3.Object(bucket_id, metadata_file)
     data = io.BytesIO()
