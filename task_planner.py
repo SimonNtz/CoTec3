@@ -4,7 +4,6 @@ from pprint import pprint as pp
 import decorate_decorator_object as pr
 import multiprocessing
 import snap_op as snap
-# import MyProc
 import sys
 import io
 import os
@@ -41,7 +40,7 @@ def main(prods, jobs):
 if __name__ == '__main__':
 
     task1 = {
-        'bands': ['B01', 'B02'],
+        'bands': ['B04', 'B07'],
         'params': ['ndvi']
     }
     task2 = {
@@ -53,5 +52,5 @@ if __name__ == '__main__':
         'params': ['gndvi']
     }
     jobs = [(snap.main, [task1])]
-    jobs = [(MyProc, [task1, task2, task3])]
+    # jobs = [(MyProc, [task1, task2, task3])]
     main(products[0], jobs)

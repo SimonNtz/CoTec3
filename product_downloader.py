@@ -41,7 +41,6 @@ def get_obj(obj, bucket_id):
     s3 = boto3.resource('s3')
     try:
         rep = s3.Bucket(bucket_id).download_file(obj, obj, Config=config)
-#       print "download of %s is %s" %(obj, str(rep))
     except OSError:
         print("Failled to download "
               + key
@@ -98,12 +97,10 @@ def locate_bands(product, meta, file_keys, bucket_id):
 
 def get_product_metadata(keys, bucket_id):
     pool = ThreadPool(processes=len(keys))
-    # pool.map(get_obj, keys)
     _get_obj = partial(get_obj, bucket_id=bucket_id)
     pool.map(_get_obj, keys)
     Shared.shared.write('meta', True)
     print "Metadata ready."
-    # pool.map(lambda x: get_obj(x, bucket_id), keys)
 
 
 def get_product_data(bands_dict, bucket_id, targets=None):
@@ -127,8 +124,6 @@ def get_product_data(bands_dict, bucket_id, targets=None):
                             callback=cb) for band in bands]
     pool.close()
     pool.join()
-#    for r in res:
-#        r.wait()
 
 
 def locate_metadata(files, bands):
@@ -145,20 +140,9 @@ def init(bucket_id, product):
 
 
 def main(bucket_id, product, meta, target_bands=None):
-    # global BUCKET_NAME
     bands_index = init(bucket_id, product, meta)
     bands = ["B02", "B03", "B06"]  # , ["B04", "B05", "B08"]]
     get_product_data(bands_index, bucket_id, bands)
-    # global BUCKET_NAME
-    # global q
-    # BUCKET_NAME = bucket_id
-    # product_file_list = get_product_keys(bucket_id, product)
-    # bands_index = locate_bands(product, meta)
-    # # get_data_imap(bands_index)
-    # metadata_loc = locate_metadata(product_file_list, bands_index.values())
-    # get_product_metadata(metadata_loc)
-    # get_product_data(bands_index, target_bands)
-    # print list(q.queue)
 
 
 if __name__ == '__main__':
@@ -167,19 +151,3 @@ if __name__ == '__main__':
     meta_file = 'MTD_MSIL1C.xml'
     q = Q.Queue()
     main(BUCKET_NAME, p, meta_file, ['B01', 'B02', 'B03'])
-# run_proc(filenames[0])
-# run_async_get(filenames[0])
-# process = [None] * 2
-# for i in range(2):
-#    #process[i] = Process(target=run_async_get, args=(filenames[i], ))
-#    process[i] = Process(target=run_proc, args=(filenames[i], ))
-#    process[i].start()
-# for j in range(2):
-#    process[j].join()
-##
-# time_0 = time.time()
-# pool = Pool(processes=2)
-# pool.map(run_proc, filenames)
-# print(time.time() - time_0)
-# print(time.time() - time_0)
-(END)

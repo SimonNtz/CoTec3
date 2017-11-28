@@ -11,3 +11,4 @@ class Shared:
 
 
 shared = Shared()
+shared.write("meta", False)

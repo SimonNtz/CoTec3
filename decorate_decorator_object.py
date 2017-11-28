@@ -9,7 +9,6 @@ import Shared
 from random import randint
 import NoDaemonProcess as ndp
 import product_meta as pm
-import subS2 as S2
 from functools import partial
 ''' Library  of communicating processes over a shared object
     index:  list of objects
@@ -25,12 +24,12 @@ class download_decorator(object):
         self.product = args[0]
         self.index, self.params = args[1].values()
         whoaim("a proc assigned to object %s" % self.index)
-#        rdm_sleep()
-#        self.register()
-#        while not all(Shared.shared.dict[k] for k in self.index):
-#            print("keys found :" +
-#                  ', '.join(k for k in self.index if Shared.shared.dict[k]))
-#            rdm_sleep(1)
+        rdm_sleep()
+        self.register()
+        while not all(Shared.shared.dict[k] for k in self.index):
+            print("keys found :" +
+                  ', '.join(k for k in self.index if Shared.shared.dict[k]))
+            rdm_sleep(1)
         return(partial(self.target, params=self.params))
 #       return self.target(pm.get_meta_from_prod(self.product), self.params)
 
@@ -59,11 +58,6 @@ class download_decorator(object):
                 bucket_id, self.product)
             pp(self.bands_loc)
             proc_meta, proc_bands = create_process(self)
-
-            # proc_meta.start()
-            # proc_bands.start()
-            # proc_meta.join()
-            # proc_bands.join()
 
         downlad_manager_daemon = Process(target=download_manager)
         downlad_manager_daemon.daemon = False
@@ -124,15 +118,3 @@ def proc_runner(funk, index):
 
 
 bucket_id = 'sixsq.eoproc'
-# task1 = {
-#        'bands': ['B07', 'B04'],
-#        'params': ['ndvi']
-#    }
-# products = ['S2A_OPER_PRD_MSIL1C_PDMC_20151230T202002_R008_V20151230T105153_20151230T105153.SAFE',
-#            'S2A_MSIL1C_20170202T090201_N0204_R007_T35SNA_20170202T090155.SAFE',
-#            'S2A_MSIL1C_20170617T012701_N0205_R074_T54SUF_20170617T013216.SAFE']
-# jobs = [(S2.read_product,[task1])]#, task2, task3])]
-#proc_runner(S2.read_product, [products[1], [task1]])
-#proc_runner(S2.read_product, products[1])
-# bands = [["B02", "B03", "B06"], ["B04", "B05", "B08"], ["B01", "B02"]]
-# proc_runner(MyProc, [product, bands])
