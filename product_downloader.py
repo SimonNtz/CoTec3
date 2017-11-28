@@ -1,4 +1,3 @@
-
 from boto3.s3.transfer import TransferConfig
 from functools import partial
 from multiprocessing.pool import ThreadPool
@@ -42,6 +41,7 @@ def get_obj(obj, bucket_id):
     s3 = boto3.resource('s3')
     try:
         rep = s3.Bucket(bucket_id).download_file(obj, obj, Config=config)
+#       print "download of %s is %s" %(obj, str(rep))
     except OSError:
         print("Failled to download "
               + key
@@ -67,10 +67,10 @@ def _extract_img_format(root):
     return formats_file_extension[temp]
 
 
-def locate_bands(product, meta, bucket_id):
+def locate_bands(product, meta, file_keys, bucket_id):
     #metadata_file = "%s/%s" % (product, meta)
     metadata_file = meta
-    print "metadatfile is " + metadata_file
+    print "Determine bands' location from " + metadata_file
     s3 = boto3.resource('s3')
     obj = s3.Object(bucket_id, metadata_file)
     data = io.BytesIO()
@@ -83,9 +83,12 @@ def locate_bands(product, meta, bucket_id):
         print("Unknown format " + er)
 
     bands = {}
+    pp(file_keys)
     for child in root[0][0][-1][0][0]:
-        band = product + '/' + child.text
-        bands[band.split('_')[-1]] = band + img_format
+        band = child.text
+        print band
+        bands[band.split(
+            '_')[-1]] = ''.join([f for f in file_keys if f.find(band) != -1])
     # obj.download_fileobj(data)
     # print obj.get()["Body"].read().decode('utf-8')
     # tree = ET.fromstring(data.getvalue().decode("utf-8"))
@@ -135,13 +138,10 @@ def locate_metadata(files, bands):
 def init(bucket_id, product):
     product_file_list = get_product_keys(bucket_id, product)
     bands_index = locate_bands(
-        product, pm.get_meta_from_prod(product), bucket_id)
+        product, pm.get_meta_from_prod(product), product_file_list, bucket_id)
     metadata_loc = locate_metadata(
         product_file_list, bands_index.values())
     return bands_index, metadata_loc
-
-    get_product_metadata(metadata_loc, bucket_id)
-    return bands_index
 
 
 def main(bucket_id, product, meta, target_bands=None):
@@ -182,3 +182,4 @@ if __name__ == '__main__':
 # pool.map(run_proc, filenames)
 # print(time.time() - time_0)
 # print(time.time() - time_0)
+(END)

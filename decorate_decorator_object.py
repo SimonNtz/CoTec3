@@ -8,7 +8,9 @@ import os
 import Shared
 from random import randint
 import NoDaemonProcess as ndp
-
+import product_meta as pm
+import subS2 as S2
+from functools import partial
 ''' Library  of communicating processes over a shared object
     index:  list of objects
 '''
@@ -21,15 +23,16 @@ class download_decorator(object):
 
     def __call__(self, *args):
         self.product = args[0]
-        self.index, self.params = (args[1].values())
+        self.index, self.params = args[1].values()
         whoaim("a proc assigned to object %s" % self.index)
-        rdm_sleep()
-        self.register()
-        while not all(Shared.shared.dict[k] for k in self.index):
-            print("keys found :" +
-                  ', '.join(k for k in self.index if Shared.shared.dict[k]))
-            rdm_sleep(1)
-        return self.target(self.index)
+#        rdm_sleep()
+#        self.register()
+#        while not all(Shared.shared.dict[k] for k in self.index):
+#            print("keys found :" +
+#                  ', '.join(k for k in self.index if Shared.shared.dict[k]))
+#            rdm_sleep(1)
+        return(partial(self.target, params=self.params))
+#       return self.target(pm.get_meta_from_prod(self.product), self.params)
 
     def run_download_manager(self):
 
@@ -54,7 +57,9 @@ class download_decorator(object):
             bucket_id = 'sixsq.eoproc'
             self.bands_loc, self.metadata_loc = prdl.init(
                 bucket_id, self.product)
+            pp(self.bands_loc)
             proc_meta, proc_bands = create_process(self)
+
             # proc_meta.start()
             # proc_bands.start()
             # proc_meta.join()
@@ -86,24 +91,48 @@ def whoaim(id):
     print "I'm running on CPU #%s and I am %s" % (multiprocessing.current_process().name, id)
 
 
+class download_decorator2(object):
+
+    def __init__(self, target):
+        self.target = target
+        print "a"
+
+    def __call__(self, prod):
+        self.product = prod
+        file_path = pm.get_meta_from_prod(self.product)
+        print os.path.isfile(file_path)
+        return self.target
+
+
 def proc_runner(funk, index):
     nbproc = len(index[1])
     Shared.shared.write("nbproc", nbproc)
     pool = ndp.MyPool(nbproc)
+    pool = ndp.MyPool(1)
+    prod_endpoint = pm.get_meta_from_prod(index[0])
 
-    def printer(msg):
-        print msg
+    def executor(func):
+        func(prod_endpoint)
+        return "ok"
     for task in index[1]:
         pool.apply_async(
             download_decorator(funk),
             args=(index[0], task),
-            callback=printer)
+            callback=executor)
     pool.close()
     pool.join()
 
 
 bucket_id = 'sixsq.eoproc'
-# product = 'S2A_MSIL1C_20170202T090201_N0204_R007_T35SNA_20170202T090155.SAFE'
-# # meta = 'MTD_MSIL1C.xml'
+# task1 = {
+#        'bands': ['B07', 'B04'],
+#        'params': ['ndvi']
+#    }
+# products = ['S2A_OPER_PRD_MSIL1C_PDMC_20151230T202002_R008_V20151230T105153_20151230T105153.SAFE',
+#            'S2A_MSIL1C_20170202T090201_N0204_R007_T35SNA_20170202T090155.SAFE',
+#            'S2A_MSIL1C_20170617T012701_N0205_R074_T54SUF_20170617T013216.SAFE']
+# jobs = [(S2.read_product,[task1])]#, task2, task3])]
+#proc_runner(S2.read_product, [products[1], [task1]])
+#proc_runner(S2.read_product, products[1])
 # bands = [["B02", "B03", "B06"], ["B04", "B05", "B08"], ["B01", "B02"]]
 # proc_runner(MyProc, [product, bands])
