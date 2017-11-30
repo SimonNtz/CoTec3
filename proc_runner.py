@@ -1,14 +1,18 @@
 from multiprocessing.pool import ThreadPool, Pool
 from multiprocessing import Process, Manager
-#import downloader as dl
+import multiprocessing
+import product_downloader as prdl
+from pprint import pprint as pp
 import time
-
+import os
+import Shared
+from random import randint
+import NoDaemonProcess as ndp
+import product_meta as pm
+from functools import partial
 ''' Library  of communicating processes over a shared object
     index:  list of objects
 '''
-
-manager = Manager()
-index_state = manager.dict()
 
 
 class download_decorator(object):
@@ -17,71 +21,98 @@ class download_decorator(object):
         self.target = target
 
     def __call__(self, *args):
-        self.index = args
+        self.product = args[0]
+        self.index, self.params = args[1].values()
+        whoaim("a proc assigned to object %s" % self.index)
         self.register()
-        while not all(index_state[key] for key in index):
-            print("proc see " +
-                  ', '.join(k for k in index_state.keys() if index_state[k]))
+        while not all(Shared.shared.dict[k] for k in self.index):
             print("keys found :" +
-                  ', '.join(k for k in index if index_state[k]))
-            time.sleep(2)
-        return self.target(args)
+                  ', '.join(k for k in self.index if Shared.shared.dict[k]))
+            rdm_sleep(1)
+        return(partial(self.target, params=self.params))
+#       return self.target(pm.get_meta_from_prod(self.product), self.params)
 
     def run_download_manager(self):
+
+        def create_process(self):
+            whoaim("the download manager process.")
+            object_list = [
+                k for k in Shared.shared.dict.keys() if k in self.bands_loc.keys()]
+            print("Bands selected: " + str(object_list))
+            threadpool = ThreadPool(2)
+            meta = threadpool.apply_async(prdl.get_product_data,
+                                          args=(self.bands_loc,
+                                                bucket_id,
+                                                object_list))
+            bands = threadpool.apply_async(prdl.get_product_metadata,
+                                           args=(self.metadata_loc,
+                                                 bucket_id))
+            meta.get()  # Can be optimized
+            bands.get()
+            return meta, bands
+
         def download_manager():
-         #           dl.init(bucket_id, product, meta)
-            for i in range(10):
-                obj = str(i)
-                index_state[obj] = True
-                print "Object %s released from index" % str(obj)
-                time.sleep(1)
-            return "Done."
+            bucket_id = 'sixsq.eoproc'
+            self.bands_loc, self.metadata_loc = prdl.init(
+                bucket_id, self.product)
+            pp(self.bands_loc)
+            proc_meta, proc_bands = create_process(self)
 
         downlad_manager_daemon = Process(target=download_manager)
-        downlad_manager_daemon.daemon = True
+        downlad_manager_daemon.daemon = False
         downlad_manager_daemon.start()
         downlad_manager_daemon.join()
 
     def register(self):
-        if not index_state:
-            self.run_download_manager()
-        valid_index = [key for key in index if key not in index_state.keys()]
+        valid_index = [
+            key for key in self.index if key not in Shared.shared.dict.keys()]
         for v in valid_index:
-            index_state[v] = False
-        print "Objects: %s registered to the index" % ','.join(index)
+            Shared.shared.write(v, False)
+        print "Objects: %s registered in shared object" % ','.join(self.index)
+        Shared.shared.dict["nbproc"] += -1
+        print Shared.shared.dict.keys()
+        if Shared.shared.dict["nbproc"] == 0:
+            Shared.shared.write('Init', False)
+            self.run_download_manager()
 
 
-def cb_proc(band):
-    print band
+def rdm_sleep(offset=0):
+    time.sleep(.001 * randint(10, 100) + offset)
+
+
+def whoaim(id):
+    print "I'm running on CPU #%s and I am %s" % (multiprocessing.current_process().name, id)
+
+
+class download_decorator2(object):
+
+    def __init__(self, target):
+        self.target = target
+        print "a"
+
+    def __call__(self, prod):
+        self.product = prod
+        file_path = pm.get_meta_from_prod(self.product)
+        print os.path.isfile(file_path)
+        return self.target
 
 
 def proc_runner(funk, index):
-    pool = Pool(processes=len(index))
-    processes = []
-    for band_index in index:
-        processes.append(pool.apply_async(
-            download_decorator(proc), band_index, callback=cb))
-    for p in processes:
-        p.get()
+    nbproc = len(index[1])
+    Shared.shared.write("nbproc", nbproc)
+    pool = ndp.MyPool(nbproc)
+    prod_endpoint = pm.get_meta_from_prod(index[0])
+
+    def executor(func):
+        func(prod_endpoint)
+        return "ok"
+    for task in index[1]:
+        pool.apply_async(
+            download_decorator(funk),
+            args=(index[0], task),
+            callback=executor)
+    pool.close()
+    pool.join()
 
 
-bands = [["2", "3", "6"], ["4", "5", "8"], ["1", "2"]]
-proc_runner(proc, bands)
-
-# def proc_runner_d(func):
-#    return proc_runner(func, )
-#
-# @proc_runner_d
-# proc(bands)
-
-#my_func = download_decorator(proc)
-#
-# if __name__ == '__main__':
-#    bands = [["2", "3", "6"], ["4", "5", "8"], ["1", "2"]]
-#    #bands = ["2", "3", "6"]
-#    pool = Pool(processes=len(bands))
-#    processes = []
-#    for band_index in bands:
-#        processes.append(pool.apply_async(my_func, band_index, callback=cb))
-#    for p in processes:
-#        p.get()
+bucket_id = 'sixsq.eoproc'

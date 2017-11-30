@@ -1,5 +1,7 @@
 from multiprocessing import Manager
 
+''' Shared object betweem processss '''
+
 
 class Shared:
 

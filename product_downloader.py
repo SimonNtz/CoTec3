@@ -3,28 +3,36 @@ from functools import partial
 from multiprocessing.pool import ThreadPool
 from boto3.s3.transfer import TransferConfig
 from multiprocessing import Process
-import multiprocessing
-from pprint import pprint as pp
 import xml.etree.ElementTree as ET
 import product_meta as pm
-import botocore
 import boto3
-import Queue as Q
 import threading
 import errno
 import time
-import Queue as Q
 import Shared
-import sys
-import io
 import os
 
+'''Download in parallel EO product to S3.
+
+Boto provides a 'multipart' mode which chunk objects and proceed
+the upload/download using threading. In addition we can parallelize the download
+of multiple objects by using threading again.
+
+usage: The init function returns the metadata filename list and a dictionary of
+the bands' filename indexed with their accronym (B1, B2, B3 ...). Theses variables
+allows you to download the metadata and the required bands via the functions
+'get_product_metadata' and 'get_product_data'.
+
+'''
+
+# Multipart mode paramaters
 GB = 1024 ** 3
 config = TransferConfig(multipart_threshold=0.03 * GB,
                         max_concurrency=20,
                         use_threads=True)  # max_concurency
-formats_file_extension = {'JPEG2000': '.jp2'}
-meta_lock = False
+
+''' Takes the absolute path of a file and create locally the unexisting
+ directories.'''
 
 
 def create_dir(abs_path):
@@ -36,6 +44,7 @@ def create_dir(abs_path):
             raise
 
 
+# Takes a SINGLE object's filename and donwload it locally.
 def get_obj(obj, bucket_id):
     create_dir(obj)
     s3 = boto3.resource('s3')
@@ -49,52 +58,46 @@ def get_obj(obj, bucket_id):
     return obj
 
 
-def filter_data_order(inv_data_key, key):
-    foo = list(filter(lambda x: not inv_data_key, key))
-    return foo
-
-
-def get_product_keys(bucket_id, f):
+# List the objects of an entire bucket or one of its directories.
+def get_product_keys(bucket_id, f=""):
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(bucket_id)
     objects = list(bucket.objects.filter(Prefix=f + '/'))
     return map(lambda x: x.Object().key, list(objects))
 
 
-def _extract_img_format(root):
-    temp = root[0][0][-1][0][0].attrib['imageFormat']
-    return formats_file_extension[temp]
-
-
 def locate_bands(product, meta, file_keys, bucket_id):
-    #metadata_file = "%s/%s" % (product, meta)
+    '''From the product's info containted in the 'xml' tree we can extract the
+    bands's filename.
+
+    inputs
+        product: string of the product's name
+        file_keys: product objects' list
+        bucket_id: string of the bucket's name
+
+    output
+        bands: dictionary containing the product bands filename's
+        indexed by their accronym.
+    '''
+
     metadata_file = meta
     print "Determine bands' location from " + metadata_file
     s3 = boto3.resource('s3')
     obj = s3.Object(bucket_id, metadata_file)
     data = io.BytesIO()
+    # Since we use xml file only once we retrieve it as
     obj.download_fileobj(data)
-    data.seek(0)
+    data.seek(0)               # a file-like object.
     root = ET.parse(data).getroot()
-    try:
-        img_format = _extract_img_format(root)
-    except KeyError as er:
-        print("Unknown format " + er)
-
     bands = {}
-    pp(file_keys)
     for child in root[0][0][-1][0][0]:
         band = child.text
-        print band
         bands[band.split(
             '_')[-1]] = ''.join([f for f in file_keys if f.find(band) != -1])
-    # obj.download_fileobj(data)
-    # print obj.get()["Body"].read().decode('utf-8')
-    # tree = ET.fromstring(data.getvalue().decode("utf-8"))
-    # data.read()
     return bands
 
 
+# Takes an objects list and donwload it in parallel.
 def get_product_metadata(keys, bucket_id):
     pool = ThreadPool(processes=len(keys))
     _get_obj = partial(get_obj, bucket_id=bucket_id)
@@ -103,6 +106,7 @@ def get_product_metadata(keys, bucket_id):
     print "Metadata ready."
 
 
+# Takes the bands dict and donwload the selected ones in parallel.
 def get_product_data(bands_dict, bucket_id, targets=None):
     def value2key(value):
         return bands_dict.keys()[bands_dict.values().index(value)]
@@ -126,10 +130,12 @@ def get_product_data(bands_dict, bucket_id, targets=None):
     pool.join()
 
 
+# removes the bands file form whole product objects' list
 def locate_metadata(files, bands):
     return [f for f in files if f not in bands]
 
 
+# Explained in the top description
 def init(bucket_id, product):
     product_file_list = get_product_keys(bucket_id, product)
     bands_index = locate_bands(
@@ -137,17 +143,3 @@ def init(bucket_id, product):
     metadata_loc = locate_metadata(
         product_file_list, bands_index.values())
     return bands_index, metadata_loc
-
-
-def main(bucket_id, product, meta, target_bands=None):
-    bands_index = init(bucket_id, product, meta)
-    bands = ["B02", "B03", "B06"]  # , ["B04", "B05", "B08"]]
-    get_product_data(bands_index, bucket_id, bands)
-
-
-if __name__ == '__main__':
-    BUCKET_NAME = 'sixsq.eoproc'
-    p = 'S2A_MSIL1C_20170202T090201_N0204_R007_T35SNA_20170202T090155.SAFE'
-    meta_file = 'MTD_MSIL1C.xml'
-    q = Q.Queue()
-    main(BUCKET_NAME, p, meta_file, ['B01', 'B02', 'B03'])

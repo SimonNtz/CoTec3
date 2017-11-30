@@ -1,3 +1,5 @@
+''' Draft function returning the metadata '.xml' filename from the product name '''
+
 
 def get_meta_from_prod(p):
     if p == "S2A_OPER_PRD_MSIL1C_PDMC_20151230T202002_R008_V20151230T105153_20151230T105153.SAFE":

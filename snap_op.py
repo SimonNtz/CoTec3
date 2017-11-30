@@ -12,11 +12,9 @@ from snappy import Rectangle
 from multiprocessing.pool import ThreadPool
 from multiprocessing import Process
 
-products = ['S2A_OPER_PRD_MSIL1C_PDMC_20151230T202002_R008_V20151230T105153_20151230T105153.SAFE',
-            'S2A_MSIL1C_20170202T090201_N0204_R007_T35SNA_20170202T090155.SAFE',
-            'S2A_MSIL1C_20170617T012701_N0205_R074_T54SUF_20170617T013216.SAFE']
 
-meta = 'S2A_OPER_MTD_SAFL1C_PDMC_20151230T202002_R008_V20151230T105153_20151230T105153.xml'
+''' Read resample, subset, and compute the vegetation indices of SENTINEL-2
+    products'''
 
 indices_expr = {'ndvi': '(B7 + B4) != 0 ? (B7 - B4) / (B7 + B4) : -2',
                 'ndi45': '(B5 + B4) != 0 ? (B5 - B4) / (B5 + B4) : -2',
@@ -84,4 +82,9 @@ def main(product, params):
 
 
 if __name__ == '__main__':
+    products = ['S2A_OPER_PRD_MSIL1C_PDMC_20151230T202002_R008_V20151230T105153_20151230T105153.SAFE',
+                'S2A_MSIL1C_20170202T090201_N0204_R007_T35SNA_20170202T090155.SAFE',
+                'S2A_MSIL1C_20170617T012701_N0205_R074_T54SUF_20170617T013216.SAFE']
+
+    meta = 'S2A_OPER_MTD_SAFL1C_PDMC_20151230T202002_R008_V20151230T105153_20151230T105153.xml'
     main(products[0] + '/' + meta, 'ndvi')

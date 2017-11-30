@@ -1,5 +1,7 @@
 from multiprocessing.pool import Pool
 from multiprocessing import Process
+''' Subclass of Pool from 'multiprocessing.pool' allowing to
+instance not Deamonic process '''
 
 
 class NoDaemonProcess(Process):

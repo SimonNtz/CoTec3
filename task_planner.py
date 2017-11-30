@@ -1,7 +1,6 @@
 from multiprocessing.pool import Pool
 from multiprocessing import Process
-from pprint import pprint as pp
-import decorate_decorator_object as pr
+import proc_runner
 import multiprocessing
 import snap_op as snap
 import sys
@@ -21,10 +20,8 @@ meta_file_dict = {'S2A_MTD': 'MTD_MSIL1C.xml'}
 
 
 # Import your proces or paste it here
-
-
 def MyProc(meta, params):
-    return("About to process %s with parameteras %s" % (str(meta), str(params)))
+    return("About to process %s with parameters %s" % (str(meta), str(params)))
 
 
 def main(prods, jobs):
@@ -34,7 +31,7 @@ def main(prods, jobs):
 
     for job in jobs:
         proc_func, tasks = job
-        pr.proc_runner(proc_func, [prods, tasks])
+        proc_runner.main(proc_func, [prods, tasks])
 
 
 if __name__ == '__main__':
