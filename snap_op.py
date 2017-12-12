@@ -9,8 +9,6 @@ import numpy as np
 import os
 import time
 from snappy import Rectangle
-from multiprocessing.pool import ThreadPool
-from multiprocessing import Process
 
 
 ''' Read resample, subset, and compute the vegetation indices of SENTINEL-2

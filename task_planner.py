@@ -24,14 +24,14 @@ def MyProc(meta, params):
     return("About to process %s with parameters %s" % (str(meta), str(params)))
 
 
-def main(prods, jobs):
+def main(jobs):
     print "%d cpu available" % multiprocessing.cpu_count()
-    sum_tasks = sum([len(job[1]) for job in jobs])
+    #sum_tasks = sum([len(job[1]) for job in jobs])
     print "%d jobs, %d tasks" % (len(jobs), sum_tasks)
 
     for job in jobs:
-        proc_func, tasks = job
-        proc_runner.main(proc_func, [prods, tasks])
+        prod, proc_func, tasks = job
+        proc_runner.main(proc_func, [prod, tasks])
 
 
 if __name__ == '__main__':
@@ -48,6 +48,11 @@ if __name__ == '__main__':
         'bands': ['B06', 'B07'],
         'params': ['gndvi']
     }
-    jobs = [(snap.main, [task1])]
+
+    tasks0 = [task1, task2, task3]
+    tasks1 = [task1, task2]
+
+    job0 = [product[0], snap.main, tasks0]
+    job1 = [product[1], snap.main, tasks1]
     # jobs = [(MyProc, [task1, task2, task3])]
-    main(products[0], jobs)
+    main([job0, job1])

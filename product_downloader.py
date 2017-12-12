@@ -11,6 +11,7 @@ import errno
 import time
 import Shared
 import os
+import io
 
 '''Download in parallel EO product to S3.
 

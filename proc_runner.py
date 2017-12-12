@@ -40,13 +40,13 @@ class download_decorator(object):
                 k for k in Shared.shared.dict.keys() if k in self.bands_loc.keys()]
             print("Bands selected: " + str(object_list))
             threadpool = ThreadPool(2)
-            meta = threadpool.apply_async(prdl.get_product_data,
-                                          args=(self.bands_loc,
-                                                bucket_id,
-                                                object_list))
-            bands = threadpool.apply_async(prdl.get_product_metadata,
-                                           args=(self.metadata_loc,
-                                                 bucket_id))
+            bands = threadpool.apply_async(prdl.get_product_data,
+                                           args=(self.bands_loc,
+                                                 bucket_id,
+                                                 object_list))
+            meta = threadpool.apply_async(prdl.get_product_metadata,
+                                          args=(self.metadata_loc,
+                                                bucket_id))
             meta.get()  # Can be optimized
             bands.get()
             return meta, bands
@@ -84,20 +84,7 @@ def whoaim(id):
     print "I'm running on CPU #%s and I am %s" % (multiprocessing.current_process().name, id)
 
 
-class download_decorator2(object):
-
-    def __init__(self, target):
-        self.target = target
-        print "a"
-
-    def __call__(self, prod):
-        self.product = prod
-        file_path = pm.get_meta_from_prod(self.product)
-        print os.path.isfile(file_path)
-        return self.target
-
-
-def proc_runner(funk, index):
+def main(funk, index):
     nbproc = len(index[1])
     Shared.shared.write("nbproc", nbproc)
     pool = ndp.MyPool(nbproc)
