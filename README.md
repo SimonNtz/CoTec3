@@ -46,14 +46,14 @@ We designed the framework to take the form of an attachable to the user’s code
   1. The user should have a Nuvla account.
   2. Start the application component 'cotec3' from EO_Sentinel_1.
     https://nuv.la/module/EO_Sentinel_1/cotec3/
-  4. Connect via ssh to the started machine this repos should be already cloned.
+  4. Connect via ssh to the started machine, this repos should be already cloned inside it.
   3. Put the user S3 credentials' in the *credentials* file and
-     copy it to *~/.aws* directory
+     copy into the */root/.aws* directory.
      ```
     $ cd CoTec3
     $ cp credentials ~/.aws/
-
     ```
+
   4. Run the main script.
     ```
     $ python task_planner.py
