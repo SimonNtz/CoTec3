@@ -5,7 +5,7 @@ This document provides a description the CoTec3 KPI framework’s development. T
 
 The project delivery is on the form of a Python library. The parallelization in this environment the is done using either concurrent threads on a single core or by using multiple Linux processes. We use the both in the entire pipeline respectively the data-retrieval and the processing of EO applications.
 
-###First approach: object Store Data Access technology.
+## First approach: object Store Data Access technology.
 Amazon Web Service(AWS) provides an S3 interface on top of their object storage. The underneath library is called Boto and is coded in Python. We use it to implement the following features:
 
  1. Connect/Authenticate to buckets
@@ -24,7 +24,7 @@ Amazon Web Service(AWS) provides an S3 interface on top of their object storage.
  By doing so we will always use the full capacity available of the channel between the data location and the application deployment’s machine. The optimal number of HTTP connections with respect to object storage maximum capacity can be obtained using simple performance testing.
 
 
- ### EO processing optimization:
+ ## EO processing optimization:
  The second part of the optimization concerns the parallelization of EO data processing. In opposition with the data retrieval we can not use threads. Even if are not necessarily CPU bounded, an EO processing can not be distributed among multiple cores. However, we use the Python built-in multiprocessing library to parallelize the different jobs in different, memory separated, linux processes.      
 
 
@@ -41,5 +41,20 @@ User experience
 We designed the framework to take the form of an attachable to the user’s code. An running script is provided where the data objects can be listed with their corresponding processing function and parameters. These on will be take as arguments at the start of the framework.
 
 
-## Prerequisites
-  In order to successfully execute the application, you should have:
+## Instructions
+
+  1. The user should have a Nuvla account.
+  2. Start the application component 'cotec3' from EO_Sentinel_1.
+    https://nuv.la/module/EO_Sentinel_1/cotec3/
+  4. Connect via ssh to the started machine this repos should be already cloned.
+  3. Put the user S3 credentials' in the *credentials* file and
+     copy it to *~/.aws* directory
+     ```
+    $ cd CoTec3
+    $ cp credentials ~/.aws/
+
+    ```
+  4. Run the main script.
+    ```
+    $ python task_planner.py
+    ```
