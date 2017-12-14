@@ -40,6 +40,10 @@ Amazon Web Service(AWS) provides an S3 interface on top of their object storage.
 User experience
 We designed the framework to take the form of an attachable to the user’s code. An running script is provided where the data objects can be listed with their corresponding processing function and parameters. These on will be take as arguments at the start of the framework.
 
+The diagram below shows how the framework's entities work with each other during the execution.
+<div style="padding:14px"><img
+ src="https://github.com/SimonNtz/Diagram.png"
+ width="75%"></div>
 
 ## Instructions
 
