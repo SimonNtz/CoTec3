@@ -43,7 +43,7 @@ if __name__ == '__main__':
         'params': ['ndi45']
     }
     task3 = {
-        'bands': ['B06', 'B07'],
+        'bands': ['B03', 'B07'],
         'params': ['gndvi']
     }
 
@@ -52,5 +52,5 @@ if __name__ == '__main__':
 
     job0 = [products[0], snap.main, tasks0]
     job1 = [products[1], snap.main, tasks1]
-    # jobs = [(MyProc, [task1, task2, task3])]
-    main([job0, job1])
+    #main([job0, job1])
+    main([job0])

@@ -3,6 +3,7 @@ from multiprocessing import Process, Manager
 import multiprocessing
 import product_downloader as prdl
 from pprint import pprint as pp
+import threading
 import time
 import os
 import Shared
@@ -26,7 +27,8 @@ class download_decorator(object):
         whoaim("a process assigned to object %s" % self.index)
         self.register()
         while not all(Shared.shared.dict[k] for k in self.index):
-            print("keys found :" +
+            print("keys found for @%s" % (multiprocessing.current_process().name,
+                                          id) +
                   ', '.join(k for k in self.index if Shared.shared.dict[k]))
             rdm_sleep(1)
         return(partial(self.target, params=self.params))
@@ -39,18 +41,18 @@ class download_decorator(object):
             object_list = [
                 k for k in Shared.shared.dict.keys() if k in self.bands_loc.keys()]
             print("Bands selected: " + str(object_list))
-            threadpool = ThreadPool(2)
-            meta = threadpool.apply_async(prdl.get_product_metadata,
-                                          args=(self.metadata_loc,
-                                                bucket_id))
+            meta = threading.Thread(target=prdl.get_product_metadata,
+                                    args=(self.metadata_loc,
+                                          bucket_id))
 
-            bands = threadpool.apply_async(prdl.get_product_data,
+            bands = threadpool.apply_async(target=prdl.get_product_data,
                                            args=(self.bands_loc,
                                                  bucket_id,
                                                  object_list))
-
-            meta.get()  # Can be optimized
-            bands.get()
+            meta.start()
+            meta.join()  # Can be optimized
+            bands.start()
+            bands.join()
 
         def download_manager():
             bucket_id = 'sixsq.eoproc'
