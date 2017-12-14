@@ -42,7 +42,7 @@ We designed the framework to take the form of an attachable to the user’s code
 
 The diagram below shows how the framework's entities work with each other during the execution.
 <div style="padding:14px"><img
-src="https://github.com/SimonNtz/SAR_app/blob/master/run/NuvlaProfile.png"
+src="https://github.com/SimonNtz/CoTec3/blob/master/Diagram.png"
 width="75%"></div>
 
 ## Instructions
