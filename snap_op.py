@@ -20,6 +20,7 @@ indices_expr = {'ndvi': '(B7 + B4) != 0 ? (B7 - B4) / (B7 + B4) : -2',
 
 
 def read_product(f, meta=None):
+    print(os.getcwd() + '/' + f)
     product = ProductIO.readProduct(os.getcwd() + '/' + f)
     width = product.getSceneRasterWidth()
     height = product.getSceneRasterHeight()

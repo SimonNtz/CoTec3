@@ -23,7 +23,7 @@ class download_decorator(object):
     def __call__(self, *args):
         self.product = args[0]
         self.index, self.params = args[1].values()
-        whoaim("a proc assigned to object %s" % self.index)
+        whoaim("a process assigned to object %s" % self.index)
         self.register()
         while not all(Shared.shared.dict[k] for k in self.index):
             print("keys found :" +
@@ -40,23 +40,23 @@ class download_decorator(object):
                 k for k in Shared.shared.dict.keys() if k in self.bands_loc.keys()]
             print("Bands selected: " + str(object_list))
             threadpool = ThreadPool(2)
+            meta = threadpool.apply_async(prdl.get_product_metadata,
+                                          args=(self.metadata_loc,
+                                                bucket_id))
+
             bands = threadpool.apply_async(prdl.get_product_data,
                                            args=(self.bands_loc,
                                                  bucket_id,
                                                  object_list))
-            meta = threadpool.apply_async(prdl.get_product_metadata,
-                                          args=(self.metadata_loc,
-                                                bucket_id))
+
             meta.get()  # Can be optimized
             bands.get()
-            return meta, bands
 
         def download_manager():
             bucket_id = 'sixsq.eoproc'
             self.bands_loc, self.metadata_loc = prdl.init(
                 bucket_id, self.product)
-            pp(self.bands_loc)
-            proc_meta, proc_bands = create_process(self)
+            create_process(self)
 
         downlad_manager_daemon = Process(target=download_manager)
         downlad_manager_daemon.daemon = False
@@ -70,7 +70,6 @@ class download_decorator(object):
             Shared.shared.write(v, False)
         print "Objects: %s registered in shared object" % ','.join(self.index)
         Shared.shared.dict["nbproc"] += -1
-        print Shared.shared.dict.keys()
         if Shared.shared.dict["nbproc"] == 0:
             Shared.shared.write('Init', False)
             self.run_download_manager()

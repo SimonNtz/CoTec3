@@ -26,8 +26,6 @@ def MyProc(meta, params):
 
 def main(jobs):
     print "%d cpu available" % multiprocessing.cpu_count()
-    #sum_tasks = sum([len(job[1]) for job in jobs])
-    print "%d jobs, %d tasks" % (len(jobs), sum_tasks)
 
     for job in jobs:
         prod, proc_func, tasks = job
@@ -52,7 +50,7 @@ if __name__ == '__main__':
     tasks0 = [task1, task2, task3]
     tasks1 = [task1, task2]
 
-    job0 = [product[0], snap.main, tasks0]
-    job1 = [product[1], snap.main, tasks1]
+    job0 = [products[0], snap.main, tasks0]
+    job1 = [products[1], snap.main, tasks1]
     # jobs = [(MyProc, [task1, task2, task3])]
     main([job0, job1])

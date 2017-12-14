@@ -102,6 +102,7 @@ def locate_bands(product, meta, file_keys, bucket_id):
 def get_product_metadata(keys, bucket_id):
     pool = ThreadPool(processes=len(keys))
     _get_obj = partial(get_obj, bucket_id=bucket_id)
+    print "Download of the  metadata is started."
     pool.map(_get_obj, keys)
     Shared.shared.write('meta', True)
     print "Metadata ready."
