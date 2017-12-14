@@ -41,23 +41,24 @@ User experience
 We designed the framework to take the form of an attachable to the user’s code. An running script is provided where the data objects can be listed with their corresponding processing function and parameters. These on will be take as arguments at the start of the framework.
 
 The diagram below shows how the framework's entities work with each other during the execution.
-<div style="padding:14px">
-<img>src="https://github.com/SimonNtz/Diagram.png"<img>
- width="75%"></div>
+<div style="padding:14px"><img
+src="https://github.com/SimonNtz/SAR_app/blob/master/run/NuvlaProfile.png"
+width="75%"></div>
 
 ## Instructions
 
   1. The user should have a Nuvla account.
   2. Start the application component 'cotec3' from EO_Sentinel_1.
     https://nuv.la/module/EO_Sentinel_1/cotec3/
-  4. Connect via ssh to the started machine, this repos should be already cloned inside it.
-  3. Put the user S3 credentials' in the *credentials* file and
+  3. Connect via ssh to the started machine, this repos should be already cloned inside it.
+  4. Put the user S3 credentials' in the *credentials* file and
      copy into the */root/.aws* directory.
-     ```
-    $ cd CoTec3
-    $ cp credentials ~/.aws/
+  ```
+  $ cd CoTec3
+  $ cp credentials ~/.aws/
+  ```
 
-  4. Run the main script.
-    ```
-    $ python task_planner.py
-    ```
+  5. Run the main script.
+  ```
+  $ python task_planner.py
+  ```
