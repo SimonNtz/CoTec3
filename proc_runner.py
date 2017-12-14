@@ -45,10 +45,10 @@ class download_decorator(object):
                                     args=(self.metadata_loc,
                                           bucket_id))
 
-            bands = threadpool.apply_async(target=prdl.get_product_data,
-                                           args=(self.bands_loc,
-                                                 bucket_id,
-                                                 object_list))
+            bands = threading.Thread(target=prdl.get_product_data,
+                                     args=(self.bands_loc,
+                                           bucket_id,
+                                           object_list))
             meta.start()
             meta.join()  # Can be optimized
             bands.start()
