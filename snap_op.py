@@ -1,10 +1,15 @@
 import sys
 sys.path.append('/root/.snap/snap-python')
 import snappy
+from snappy import Rectangle
 from snappy import ProductIO
 from snappy import jpy
 from snappy import GPF
 from snappy import HashMap
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 import os
 import time
@@ -50,6 +55,39 @@ def resample(product, params):
     parameters.put('targetResolution', params)
     result = GPF.createProduct('Resample', parameters, product)
     return result
+
+
+def subset(product):
+    SubsetOp = jpy.get_type('org.esa.snap.core.gpf.common.SubsetOp')
+#    WKTReader = jpy.get_type('com.vividsolutions.jts.io.WKTReader')
+#    wkt = 'POLYGON ((27.350865857300093 36.824908050376905,
+#		     27.76637805803395 36.82295594263548,
+#	 	     27.76444424458719 36.628100558767244,
+#                     27.349980428973755 36.63003894847389,
+#                    27.350865857300093 36.824908050376905))'
+#    geometry = WKTReader().read(wkt)
+    op = SubsetOp()
+    op.setSourceProduct(product)
+    op.setRegion(Rectangle(0, 500, 500, 500))
+    sub_product = op.getTargetProduct()
+    print("subset product ready")
+    return sub_product
+
+
+def save_array(band):
+    w = band.getRasterWidth()
+    h = band.getRasterHeight()
+    band_data = np.zeros(w * h, np.float32)
+    band.readPixels(0, 0, w, h, band_data)
+    band_data.shape = h, w
+    width = 12
+    height = 12
+    fig = plt.figure(figsize=(width, height))
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    im = plt.imshow(band_data)
+    pos = fig.add_axes([0.93, 0.1, 0.02, 0.35])  # Set colorbar position in fig
+    fig.colorbar(im, cax=pos)  # Create the colorbar
+    plt.savefig(band.getName() + '.jpg')
 
 
 def compute_vegeation_index(product, index):
