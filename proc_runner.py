@@ -71,6 +71,7 @@ class download_decorator(object):
         for v in valid_index:
             Shared.shared.write(v, False)
         print "Objects: %s registered in shared object" % ','.join(self.index)
+        rdm_sleep()
         Shared.shared.dict["nbproc"] += -1
         if Shared.shared.dict["nbproc"] == 0:
             Shared.shared.write('Init', False)
